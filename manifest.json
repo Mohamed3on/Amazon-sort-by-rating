@@ -1,0 +1,37 @@
+{
+  "manifest_version": 2,
+  "name": "Sort Amazon By Ratings score",
+  "short_name": "AMZ Sort Rev",
+  "version": "1",
+  "description": "You can now sort Amazon™ search results using my unique algorithm.",
+  "author": "Mohamed Oun",
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.amazon.com/*",
+        "*://*.amazon.co.uk/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.com.au/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.fr/*",
+        "*://*.amazon.it/*",
+        "*://*.amazon.es/*",
+        "*://*.amazon.ca/*",
+        "*://*.amazon.in/*",
+        "*://*.amazon.cn/*",
+        "*://*.amazon.nl/*",
+        "*://*.amazon.co.jp/*"
+      ],
+      "run_at": "document_idle",
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "16": "images/16.png",
+    "24": "images/24.png",
+    "32": "images/icon32.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png",
+    "512": "images/icon512.png"
+  }
+}
