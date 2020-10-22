@@ -13,23 +13,13 @@ const getTLD = () => {
   return window.location.origin.split('.').pop();
 };
 
+const numberWithCommas = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
 /*
-	  Sort Amazon Results By Reviews
-	  Creator: Matthew Ogborne
-	  Email: moggiex@gmail.com
-
-	  description:
-		  Click the button to have your results sorted by the number of reviews. Amazon's "Sort by" feature does have "Avg Review", but that is frankly useless. This extension sorts the results by the number of reviews for the items on the page, so even if you have sponsored items in the search results, you see which ones are the most popular & most rated.
-
 	  Tested pages:
 	  Type 1: https://www.amazon.co.uk/s?k=tent&rh=n%3A3147471&ref=nb_sb_noss
 	  Type 2: https://www.amazon.com/b/ref=dp_bc_aui_C_2?ie=UTF8&node=18457661011
 	Type 3: https://www.amazon.com/b?node=18854668011
-
-	Version History:
-	v1    First Release
-	v1.1  Fixed results not being put in first container
-
   */
 
 /*
@@ -101,7 +91,10 @@ const addCss = () => {
 	  margin-top: 4px;
   }
   .sbrc-highlight {
-	  background-color: #fffbf1;
+	  background-color: #fff686;
+  }
+  .sbrc-fade {
+	  opacity: 60%;
   }
   .sbrc-highlight .s-item-container {
 	  background-image: none !important;
@@ -213,7 +206,8 @@ const sortAmazonResults = async () => {
         // highlight better products
         item[1].classList.add('sbrc-highlight');
         bestProduct = { score: itemScore, ratio: itemRatio };
-      }
+      } else if (itemScore < bestProduct.score / 2) item[1].classList.add('sbrc-fade');
+
       searchResults.insertAdjacentHTML('beforeend', item[1].outerHTML);
     }
   }
@@ -243,15 +237,17 @@ const getRatingPercentage = (ratingText) => {
       oneStars: oneMatches ? oneMatches[0] : 0,
     };
   }
+
+  fiveMatches = ratingText.match(/(?<=5 stars represent )(\d+)/g);
   oneMatches = ratingText.match(/(?<=1 stars represent )(\d+)/g);
 
   return {
-    fiveStars: ratingText.match(/(?<=5 stars represent )(\d+)/g)[0],
+    fiveStars: fiveMatches ? fiveMatches[0] : 0,
     oneStars: oneMatches ? oneMatches[0] : 0,
   };
 };
 
-const getRatingScores = async (productSIN, elementToAppendAfter, numOfRatings) => {
+const getRatingScores = async (productSIN, elementToReplace, numOfRatings) => {
   const ratingDetails = await fetch(
     `https://www.amazon.${getTLD()}/gp/customer-reviews/widgets/average-customer-review/popover/ref=dpx_acr_pop_?contextId=dpx&asin=${productSIN}`,
     {
@@ -268,12 +264,7 @@ const getRatingScores = async (productSIN, elementToAppendAfter, numOfRatings) =
   const scorePercentage = fiveStars - oneStars;
   const scoreAbsolute = Math.round(parseInt(numOfRatings) * (scorePercentage / 100));
 
-  const ScoreElement = document.createElement('span');
-  ScoreElement.style.fontSize = `16px`;
-  ScoreElement.style.color = `red`;
-  ScoreElement.innerHTML = ` score: (${scoreAbsolute}) ratio: (${scorePercentage}%)`;
-
-  ScoreElement.appendAfter(elementToAppendAfter);
+  elementToReplace.innerHTML = ` ${numberWithCommas(scoreAbsolute)} ratio: (${scorePercentage}%)`;
   checkedProducts.push(productSIN);
 
   return { scorePercentage, scoreAbsolute };
