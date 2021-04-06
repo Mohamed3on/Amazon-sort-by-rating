@@ -281,10 +281,16 @@ const getRatingScores = async (productSIN, elementToReplace, numOfRatings) => {
     const dropdown = checkForDropdown();
 
     if (dropdown) {
-      addCss();
-      injectSortButton(dropdown);
+      if (window.location.href.includes('s=review-count-rank')) {
+        addCss();
+        injectSortButton(dropdown);
 
-      await sortAmazonResults();
+        await sortAmazonResults();
+      } else {
+        const url = new URL(window.location.href);
+        url.searchParams.append('s', 'review-count-rank');
+        window.location.href = url;
+      }
     }
   }
 })();
