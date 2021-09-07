@@ -20,6 +20,7 @@
         "*://*.amazon.in/*",
         "*://*.amazon.cn/*",
         "*://*.amazon.nl/*",
+        "*://*.amazon.eg/*",
         "*://*.amazon.co.jp/*"
       ],
       "run_at": "document_idle",
