@@ -29,82 +29,6 @@ const numberWithCommas = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',
 
 let pageType = 1;
 
-/*
-	@desc 	Add a button to the page to sort options
-	@return	nada
-*/
-const injectSortButton = async (ele) => {
-  const button = document.createElement('button');
-  button.innerHTML = `<i class="a-icon a-icon-dropdown"></i> Sort by Rating Count`;
-  button.id = 'sort-by-rating-count';
-  button.className = 'sort-by-rating-count';
-  //   button.style.padding = "5px";
-  ele.insertAdjacentHTML('beforeend', button.outerHTML);
-  document.getElementById('sort-by-rating-count').addEventListener('click', async function (e) {
-    e.preventDefault();
-    await sortAmazonResults();
-  });
-};
-
-/*
-	  @desc 	See if we have a dropdown counter
-	  @return	Element to attach to
-  */
-const checkForDropdown = () => {
-  // type 1 pages
-  // https://www.amazon.co.uk/s?k=tent&rh=n%3A3147471&ref=nb_sb_noss
-  let dropdown = document.querySelector('.s-desktop-toolbar .a-dropdown-container');
-
-  if (!dropdown) {
-    //   type 2 pages
-    // https://www.amazon.com/b/ref=dp_bc_aui_C_2?ie=UTF8&node=18457661011
-    dropdown = document.getElementById('searchSortForm');
-
-    if (dropdown) {
-      pageType = 2;
-    }
-  }
-  return dropdown;
-};
-
-const addCss = () => {
-  const head = document.getElementsByTagName('head');
-  let style = document.createElement('style');
-  style.setAttribute('type', 'text/css');
-
-  let css = `
-  .sort-by-rating-count {
-	  background: #f0c14b;
-	  border-color: #a88734 #9c7e31 #846a29;
-	  color: #111;
-	  border-radius: 3px;
-	  border-width: 1px;
-	  cursor: pointer;
-	  display: inline-block;
-	  text-align: center;
-	  text-decoration: none!important;
-	  vertical-align: middle;
-	  margin-left: 5px;
-	  padding: 3px 5px;
-  }
-  #sort-by-rating-count .a-icon-dropdown {
-	  margin-top: 4px;
-  }
-  .sbrc-highlight {
-	  background-color: #fff686;
-  }
-  .sbrc-fade {
-	  opacity: 60%;
-  }
-  .sbrc-highlight .s-item-container {
-	  background-image: none !important;
-	  background-size: 0 !important;
-  }
-  `;
-  style.innerHTML = css;
-  head[0].insertAdjacentElement('beforeend', style);
-};
-
 const sortAmazonResults = async () => {
   // function sortAmazonResults() {
   // List page: https://www.amazon.co.uk/s?k=rice+cooker&ref=nb_sb_noss_2
@@ -115,7 +39,7 @@ const sortAmazonResults = async () => {
   let items;
 
   if (pageType == 1) {
-    items = document.querySelectorAll('.s-search-results .s-result-item');
+    items = document.querySelectorAll('[data-asin]:not([data-asin=""])');
   } else {
     items = document.querySelectorAll('.s-result-list .s-result-item');
   }
@@ -155,19 +79,21 @@ const sortAmazonResults = async () => {
     if (numberOfRatingsElement && !celWidget) {
       const productSIN = item.getAttribute('data-asin');
 
-      if (checkedProducts.includes(productSIN)) break;
+      if (!productSIN) {
+        continue;
+      }
+
+      if (checkedProducts.includes(productSIN)) continue;
 
       numberOfRatings = numberOfRatingsElement.innerHTML.split(',').join('');
       numberOfRatings = parseInt(numberOfRatings);
-      const { scoreAbsolute, scorePercentage } = await getRatingScores(
+      const { calculatedScore } = await getRatingScores(
         productSIN,
         numberOfRatingsElement,
         numberOfRatings
       );
 
-      item.setAttribute('ratio', scorePercentage);
-
-      itemsArr.push([scoreAbsolute, item]);
+      itemsArr.push([calculatedScore, item]);
     } else {
       // keeps each one unique
       counter--;
@@ -179,8 +105,6 @@ const sortAmazonResults = async () => {
 
   // sort the items by review count
   itemsArr.sort(sortFunction);
-
-  bestProduct = { score: itemsArr[0][0], ratio: itemsArr[0][1].getAttribute('ratio') };
 
   // Delete existing items
 
@@ -200,14 +124,6 @@ const sortAmazonResults = async () => {
 
     // Append in order to the page
     for (let item of itemsArr) {
-      let itemScore = item[0];
-      let itemRatio = item[1].getAttribute('ratio');
-      if (itemScore > bestProduct.score / 2 && itemRatio > bestProduct.ratio) {
-        // highlight better products
-        item[1].classList.add('sbrc-highlight');
-        bestProduct = { score: itemScore, ratio: itemRatio };
-      } else if (itemScore < bestProduct.score / 2) item[1].classList.add('sbrc-fade');
-
       searchResults.insertAdjacentHTML('beforeend', item[1].outerHTML);
     }
   }
@@ -264,33 +180,22 @@ const getRatingScores = async (productSIN, elementToReplace, numOfRatings) => {
   const scorePercentage = fiveStars - oneStars;
   const scoreAbsolute = Math.round(parseInt(numOfRatings) * (scorePercentage / 100));
 
-  elementToReplace.innerHTML = ` ${numberWithCommas(scoreAbsolute)} ratio: (${scorePercentage}%)`;
+  const calculatedScore = Math.round(scoreAbsolute * (scorePercentage / 100), 2);
+
+  elementToReplace.innerHTML = ` ${numberWithCommas(calculatedScore)} ratio: (${scorePercentage}%)`;
   checkedProducts.push(productSIN);
 
-  return { scorePercentage, scoreAbsolute };
+  return { calculatedScore };
 };
 
 (async function main() {
   if (
     window.location.href.includes('s?k') ||
+    window.location.href.includes('s?i') ||
     window.location.href.includes('s?') ||
     window.location.href.includes('/b/') ||
     window.location.href.includes('/b?')
   ) {
-    // See if the page has a dropdown container for ordering options
-    const dropdown = checkForDropdown();
-
-    if (dropdown) {
-      if (window.location.href.includes('s=review-count-rank')) {
-        addCss();
-        injectSortButton(dropdown);
-
-        await sortAmazonResults();
-      } else {
-        const url = new URL(window.location.href);
-        url.searchParams.append('s', 'review-count-rank');
-        window.location.href = url;
-      }
-    }
+    await sortAmazonResults();
   }
 })();
