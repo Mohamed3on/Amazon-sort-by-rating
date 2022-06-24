@@ -158,8 +158,8 @@ const getRatingPercentage = (ratingText) => {
   oneMatches = ratingText.match(/(?<=1 stars represent )(\d+)/g);
 
   return {
-    fiveStars: fiveMatches ? fiveMatches[0] : 0,
-    oneStars: oneMatches ? oneMatches[0] : 0,
+    fiveStars: fiveMatches ? fiveMatches[0] : null,
+    oneStars: oneMatches ? oneMatches[0] : null,
   };
 };
 
@@ -176,6 +176,10 @@ const getRatingScores = async (productSIN, elementToReplace, numOfRatings) => {
 
   const text = await ratingDetails.text();
   const { fiveStars, oneStars } = getRatingPercentage(text);
+
+  if (!fiveStars && !oneStars) {
+    throw new Error('No ratings found');
+  }
 
   const scorePercentage = fiveStars - oneStars;
   const scoreAbsolute = Math.round(parseInt(numOfRatings) * (scorePercentage / 100));
