@@ -85,7 +85,7 @@ const sortAmazonResults = async () => {
 
       if (checkedProducts.includes(productSIN)) continue;
 
-      numberOfRatings = numberOfRatingsElement.innerHTML.split(',').join('');
+      numberOfRatings = numberOfRatingsElement.innerHTML.match(/\d/g).join('');
       numberOfRatings = parseInt(numberOfRatings);
       const { calculatedScore } = await getRatingScores(
         productSIN,
@@ -134,7 +134,6 @@ const sortAmazonResults = async () => {
   pageType = 1;
 };
 
-// https://stackoverflow.com/questions/16096872/how-to-sort-2-dimensional-array-by-column-value
 function sortFunction(a, b) {
   if (a[0] === b[0]) {
     return 0;
@@ -143,24 +142,31 @@ function sortFunction(a, b) {
   }
 }
 
+function htmlToElement(html) {
+  var template = document.createElement('template');
+  html = html.trim(); // Never return a text node of whitespace as the result
+  template.innerHTML = html;
+  return template.content.firstChild;
+}
+
 const getRatingPercentage = (ratingText) => {
-  let matches = ratingText.match(/\d+(?=% of reviews have 5 stars)/g);
-  let oneMatches;
-  if (matches) {
-    oneMatches = ratingText.match(/\d+(?=% of reviews have 1 stars)/g);
-    return {
-      fiveStars: ratingText.match(/\d+(?=% of reviews have 5 stars)/g)[0],
-      oneStars: oneMatches ? oneMatches[0] : 0,
-    };
-  }
-
-  fiveMatches = ratingText.match(/(?<=5 stars represent )(\d+)/g);
-  oneMatches = ratingText.match(/(?<=1 stars represent )(\d+)/g);
-
+  const template = htmlToElement(ratingText);
+  const fiveStarRatingsText = template.getElementsByClassName('5star')?.[0]?.getAttribute('title');
+  const oneStarRatingsText = template.getElementsByClassName('1star')?.[0]?.getAttribute('title');
+  const oneStars = oneStarRatingsText?.match(/\d+(?=%)/g)?.[0] || 0;
+  const fiveStars = fiveStarRatingsText?.match(/\d+(?=%)/g)?.[0] || 0;
   return {
-    fiveStars: fiveMatches ? fiveMatches[0] : null,
-    oneStars: oneMatches ? oneMatches[0] : null,
+    fiveStars,
+    oneStars,
   };
+
+  // fiveMatches = ratingText.match(/(?<=5 stars represent )(\d+)/g);
+  // oneMatches = ratingText.match(/(?<=1 stars represent )(\d+)/g);
+
+  // return {
+  //   fiveStars: fiveMatches ? fiveMatches[0] : 0,
+  //   oneStars: oneMatches ? oneMatches[0] : 0,
+  // };
 };
 
 const getRatingScores = async (productSIN, elementToReplace, numOfRatings) => {
