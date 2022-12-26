@@ -85,8 +85,9 @@ const sortAmazonResults = async () => {
 
       if (checkedProducts.includes(productSIN)) continue;
 
-      numberOfRatings = numberOfRatingsElement.innerHTML.match(/\d/g).join('');
+      numberOfRatings = numberOfRatingsElement.innerHTML.match(/\d+/g).join('');
       numberOfRatings = parseInt(numberOfRatings);
+
       const { calculatedScore } = await getRatingScores(
         productSIN,
         numberOfRatingsElement,
@@ -110,7 +111,7 @@ const sortAmazonResults = async () => {
 
   // Type 1
   // https://www.amazon.co.uk/s?k=tent&rh=n%3A3147471&ref=nb_sb_noss
-  let searchResults = document.querySelectorAll('.s-result-list.s-search-results')[1];
+  let searchResults = document.querySelector('.s-result-list.s-search-results');
 
   if (!searchResults) {
     // Type 2
@@ -183,14 +184,10 @@ const getRatingScores = async (productSIN, elementToReplace, numOfRatings) => {
   const text = await ratingDetails.text();
   const { fiveStars, oneStars } = getRatingPercentage(text);
 
-  if (!fiveStars && !oneStars) {
-    throw new Error('No ratings found');
-  }
-
   const scorePercentage = fiveStars - oneStars;
   const scoreAbsolute = Math.round(parseInt(numOfRatings) * (scorePercentage / 100));
 
-  const calculatedScore = Math.round(scoreAbsolute * (scorePercentage / 100), 2);
+  const calculatedScore = Math.round(scoreAbsolute * (scorePercentage / 100), 2) || 0;
 
   elementToReplace.innerHTML = ` ${numberWithCommas(calculatedScore)} ratio: (${scorePercentage}%)`;
   checkedProducts.push(productSIN);
