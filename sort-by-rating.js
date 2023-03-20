@@ -39,7 +39,7 @@ const sortAmazonResults = async () => {
   let items;
 
   if (pageType == 1) {
-    items = document.querySelectorAll('[data-asin]:not([data-asin=""])');
+    items = document.querySelectorAll('[data-asin]:not([data-asin=""]):not(.AdHolder)');
   } else {
     items = document.querySelectorAll('.s-result-list .s-result-item');
   }

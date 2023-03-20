@@ -24,7 +24,7 @@
         "*://*.amazon.co.jp/*"
       ],
       "run_at": "document_idle",
-      "js": ["content.js"]
+      "js": ["sort-by-rating.js"]
     }
   ],
   "icons": {
