@@ -8,20 +8,20 @@
   "content_scripts": [
     {
       "matches": [
+        "*://*.amazon.fr/*",
         "*://*.amazon.com/*",
         "*://*.amazon.co.uk/*",
-        "*://*.amazon.de/*",
-        "*://*.amazon.com.au/*",
-        "*://*.amazon.de/*",
-        "*://*.amazon.fr/*",
+        "*://*.amazon.com.mx/*",
+        "*://*.amazon.co.jp/*",
         "*://*.amazon.it/*",
-        "*://*.amazon.es/*",
-        "*://*.amazon.ca/*",
         "*://*.amazon.in/*",
-        "*://*.amazon.cn/*",
-        "*://*.amazon.nl/*",
         "*://*.amazon.eg/*",
-        "*://*.amazon.co.jp/*"
+        "*://*.amazon.es/*",
+        "*://*.amazon.cn/*",
+        "*://*.amazon.ca/*",
+        "*://*.amazon.com.br/*",
+        "*://*.amazon.de/*",
+        "*://*.amazon.com.au/*"
       ],
       "run_at": "document_idle",
       "js": ["sort-by-rating.js"]

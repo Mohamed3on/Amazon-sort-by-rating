@@ -1,8 +1,5 @@
 let checkedProducts = [];
 
-const getTLD = () =>
-  window.location.origin.endsWith('.co.uk') ? 'co.uk' : window.location.origin.split('.').pop();
-
 const numberWithCommas = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 const sortFunction = (a, b) => (a[0] === b[0] ? 0 : a[0] < b[0] ? 1 : -1);
@@ -25,7 +22,7 @@ const getRatingPercentage = (ratingText) => {
 
 const getRatingScores = async (productSIN, elementToReplace) => {
   const ratingDetails = await fetch(
-    `https://www.amazon.${getTLD()}/gp/customer-reviews/widgets/average-customer-review/popover/ref=dpx_acr_pop_?contextId=dpx&asin=${productSIN}`,
+    `/gp/customer-reviews/widgets/average-customer-review/popover/ref=dpx_acr_pop_?contextId=dpx&asin=${productSIN}`,
     {
       method: 'GET',
       mode: 'cors',
