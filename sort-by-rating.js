@@ -44,8 +44,8 @@ const getRatingScores = async (productSIN, elementToReplace) => {
 };
 
 const sortAmazonResults = async () => {
-  const itemsArr = [];
   const items = document.querySelectorAll('[data-asin]:not([data-asin=""]):not(.AdHolder)');
+  const fetchPromises = [];
 
   for (const item of items) {
     const numberOfRatingsElement = item.querySelector(
@@ -57,9 +57,15 @@ const sortAmazonResults = async () => {
     const productSIN = item.getAttribute('data-asin');
     if (!productSIN || checkedProducts.includes(productSIN)) continue;
 
-    const { calculatedScore } = await getRatingScores(productSIN, numberOfRatingsElement);
-    itemsArr.push([calculatedScore, item]);
+    fetchPromises.push(
+      getRatingScores(productSIN, numberOfRatingsElement).then(({ calculatedScore }) => [
+        calculatedScore,
+        item,
+      ])
+    );
   }
+
+  const itemsArr = await Promise.all(fetchPromises);
 
   itemsArr.sort(sortFunction);
   let searchResults =
