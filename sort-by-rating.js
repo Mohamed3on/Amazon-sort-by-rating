@@ -12,10 +12,30 @@ const htmlToElement = (html) => {
 
 const getRatingPercentage = (ratingText) => {
   const template = htmlToElement(ratingText);
-  const reviewElement = template.querySelector('.totalRatingCount');
-  const totalReviews = parseInt(reviewElement.textContent.replace(/\D/g, ''), 10);
-  const fiveStars = template.querySelector('.\\35 star')?.title?.match(/\d+(?=%)/g)?.[0] || 0;
-  const oneStars = template.querySelector('.\\31 star')?.title?.match(/\d+(?=%)/g)?.[0] || 0;
+
+  const totalReviews = parseInt(
+    template
+      .querySelector('[data-hook="total-review-count"]')
+      .textContent.trim()
+      .replace(/\D/g, ''),
+    10
+  );
+  const fiveStars = parseInt(
+    template
+      .querySelector('#histogramTable li:first-child .a-section.a-spacing-none.a-text-right')
+      .textContent.trim()
+      .replace('%', ''),
+    10
+  );
+  const oneStars = parseInt(
+    template
+      .querySelector(
+        '#histogramTable li:last-child .a-section.a-spacing-none.a-text-right span:last-child'
+      )
+      .textContent.trim()
+      .replace('%', ''),
+    10
+  );
 
   return { fiveStars, oneStars, totalReviews };
 };
@@ -65,7 +85,10 @@ const sortAmazonResults = async () => {
     );
   }
 
-  const itemsArr = await Promise.all(fetchPromises);
+  const results = await Promise.allSettled(fetchPromises);
+  const itemsArr = results
+    .filter((result) => result.status === 'fulfilled')
+    .map((result) => result.value);
 
   itemsArr.sort(sortFunction);
   let searchResults =
