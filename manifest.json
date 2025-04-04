@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Sort Amazon By Ratings score",
   "short_name": "AMZ Sort Rev",
   "version": "1",
@@ -26,6 +26,23 @@
       "run_at": "document_idle",
       "js": ["sort-by-rating.js"]
     }
+  ],
+  "permissions": ["scripting", "tabs", "offscreen"],
+  "host_permissions": [
+    "*://*.amazon.fr/*",
+    "*://*.amazon.com/*",
+    "*://*.amazon.co.uk/*",
+    "*://*.amazon.com.mx/*",
+    "*://*.amazon.co.jp/*",
+    "*://*.amazon.it/*",
+    "*://*.amazon.in/*",
+    "*://*.amazon.eg/*",
+    "*://*.amazon.es/*",
+    "*://*.amazon.cn/*",
+    "*://*.amazon.ca/*",
+    "*://*.amazon.com.br/*",
+    "*://*.amazon.de/*",
+    "*://*.amazon.com.au/*"
   ],
   "icons": {
     "16": "images/16.png",

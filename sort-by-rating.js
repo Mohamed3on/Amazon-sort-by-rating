@@ -68,9 +68,9 @@ const sortAmazonResults = async () => {
   const fetchPromises = [];
 
   for (const item of items) {
-    const numberOfRatingsElement = item.querySelector(
-      '.sg-row .a-spacing-top-micro .a-link-normal span.a-size-base'
-    );
+    const numberOfRatingsElement =
+      item.querySelector('[data-cy="reviews-block"] .a-row.a-size-small a span.a-size-small') ||
+      item.querySelector('.sg-row .a-spacing-top-micro .a-link-normal span.a-size-base');
     const celWidget = item.querySelector('.s-shopping-adviser');
     if (!numberOfRatingsElement || celWidget) continue;
 
