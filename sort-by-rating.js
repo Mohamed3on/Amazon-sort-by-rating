@@ -1,4 +1,3 @@
-let checkedProducts = [];
 
 const numberWithCommas = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
@@ -11,60 +10,72 @@ const htmlToElement = (html) => {
 };
 
 const getRatingPercentage = (ratingText) => {
-  const template = htmlToElement(ratingText);
+  try {
+    const template = htmlToElement(ratingText);
 
-  const totalReviews = parseInt(
-    template
-      .querySelector('[data-hook="total-review-count"]')
-      .textContent.trim()
-      .replace(/\D/g, ''),
-    10
-  );
-  const fiveStars = parseInt(
-    template
-      .querySelector('#histogramTable li:first-child .a-section.a-spacing-none.a-text-right')
-      .textContent.trim()
-      .replace('%', ''),
-    10
-  );
-  const oneStars = parseInt(
-    template
-      .querySelector(
-        '#histogramTable li:last-child .a-section.a-spacing-none.a-text-right span:last-child'
-      )
-      .textContent.trim()
-      .replace('%', ''),
-    10
-  );
+    const totalReviews = parseInt(
+      template
+        .querySelector('[data-hook="total-review-count"]')
+        ?.textContent.trim()
+        .replace(/\D/g, '') || '0',
+      10
+    );
+    const fiveStars = parseInt(
+      template
+        .querySelector('#histogramTable li:first-child .a-section.a-spacing-none.a-text-right')
+        ?.textContent.trim()
+        .replace('%', '') || '0',
+      10
+    );
+    const oneStars = parseInt(
+      template
+        .querySelector(
+          '#histogramTable li:last-child .a-section.a-spacing-none.a-text-right span:last-child'
+        )
+        ?.textContent.trim()
+        .replace('%', '') || '0',
+      10
+    );
 
-  return { fiveStars, oneStars, totalReviews };
+    return { fiveStars, oneStars, totalReviews };
+  } catch (e) {
+    console.error('Error parsing rating:', e);
+    return { fiveStars: 0, oneStars: 0, totalReviews: 0 };
+  }
 };
 
 const getRatingScores = async (productSIN, elementToReplace) => {
-  const ratingDetails = await fetch(
-    `/gp/customer-reviews/widgets/average-customer-review/popover/ref=dpx_acr_pop_?contextId=dpx&asin=${productSIN}`,
-    {
-      method: 'GET',
-      mode: 'cors',
-      credentials: 'include',
-    }
-  );
+  try {
+    const ratingDetails = await fetch(
+      `/gp/customer-reviews/widgets/average-customer-review/popover/ref=dpx_acr_pop_?contextId=dpx&asin=${productSIN}`,
+      {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'include',
+      }
+    );
 
-  const text = await ratingDetails.text();
-  const { fiveStars, oneStars, totalReviews } = getRatingPercentage(text);
+    if (!ratingDetails.ok) throw new Error('Failed to fetch ratings');
 
-  const scorePercentage = fiveStars - oneStars;
-  const scoreAbsolute = Math.round(totalReviews * (scorePercentage / 100));
-  const calculatedScore = Math.round(scoreAbsolute * (scorePercentage / 100), 2) || 0;
+    const text = await ratingDetails.text();
+    const { fiveStars, oneStars, totalReviews } = getRatingPercentage(text);
 
-  elementToReplace.innerHTML = ` ${numberWithCommas(calculatedScore)} ratio: (${scorePercentage}%)`;
-  checkedProducts.push(productSIN);
+    const scorePercentage = fiveStars - oneStars;
+    const scoreAbsolute = Math.round(totalReviews * (scorePercentage / 100));
+    const calculatedScore = Math.round(scoreAbsolute * (scorePercentage / 100), 2) || 0;
 
-  return { calculatedScore };
+    elementToReplace.innerHTML = ` ${numberWithCommas(calculatedScore)} ratio: (${scorePercentage}%)`;
+
+    return { calculatedScore };
+  } catch (e) {
+    console.error(`Failed to get rating for ${productSIN}:`, e);
+    return { calculatedScore: 0 };
+  }
 };
 
 const sortAmazonResults = async () => {
   const items = document.querySelectorAll('[data-asin]:not([data-asin=""]):not(.AdHolder)');
+  const seenASINs = new Set();
   const fetchPromises = [];
 
   for (const item of items) {
@@ -75,8 +86,9 @@ const sortAmazonResults = async () => {
     if (!numberOfRatingsElement || celWidget) continue;
 
     const productSIN = item.getAttribute('data-asin');
-    if (!productSIN || checkedProducts.includes(productSIN)) continue;
-
+    if (!productSIN || seenASINs.has(productSIN)) continue;
+    
+    seenASINs.add(productSIN);
     fetchPromises.push(
       getRatingScores(productSIN, numberOfRatingsElement).then(({ calculatedScore }) => [
         calculatedScore,
@@ -91,6 +103,7 @@ const sortAmazonResults = async () => {
     .map((result) => result.value);
 
   itemsArr.sort(sortFunction);
+  
   let searchResults =
     document.querySelector('.s-result-list.s-search-results') ||
     document.querySelector('#mainResults .s-result-list');
