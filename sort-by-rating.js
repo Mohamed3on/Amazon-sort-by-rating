@@ -94,6 +94,15 @@ const getRatingScores = async (productSIN, elementToReplace, cache) => {
   }
 };
 
+// Observer management — disconnect during our own DOM mutations to avoid loops
+let resultObs = null;
+let observedContainer = null;
+const pauseObs = () => { if (resultObs) resultObs.disconnect(); };
+const resumeObs = () => {
+  if (resultObs && observedContainer?.isConnected)
+    resultObs.observe(observedContainer, { childList: true });
+};
+
 const sortAmazonResults = async () => {
   const items = document.querySelectorAll('.s-result-item[data-asin]:not([data-asin=""]):not(.AdHolder)');
   const seenASINs = new Set();
@@ -107,6 +116,13 @@ const sortAmazonResults = async () => {
 
     const productSIN = item.getAttribute('data-asin');
     if (!productSIN || seenASINs.has(productSIN)) continue;
+
+    // Deduplicate product variants (same product, different color/size)
+    const swatchASINs = [...item.querySelectorAll('[data-csa-c-swatch-url]')]
+      .map(el => (el.getAttribute('data-csa-c-swatch-url')?.match(/\/dp\/([A-Z0-9]{10})/) || [])[1])
+      .filter(Boolean);
+    if (swatchASINs.some(a => seenASINs.has(a))) { item.remove(); continue; }
+    swatchASINs.forEach(a => seenASINs.add(a));
 
     seenASINs.add(productSIN);
 
@@ -143,27 +159,61 @@ const sortAmazonResults = async () => {
     document.querySelector('#mainResults .s-result-list');
 
   if (searchResults && itemsArr.length > 0) {
+    pauseObs();
     for (const [, item] of itemsArr) item.remove();
     const refNode = searchResults.firstChild;
     for (const [, item] of itemsArr) searchResults.insertBefore(item, refNode);
+    resumeObs();
   }
 };
 
 (async function main() {
   const isSearchPage = () => /s\?k|s\?i|s\?|\/b\//.test(location.href);
 
-  if (isSearchPage()) await sortAmazonResults();
+  let sorting = false, pendingSort = false;
+  const debouncedSort = (() => {
+    let timer;
+    return () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        if (sorting) { pendingSort = true; return; }
+        sorting = true;
+        await sortAmazonResults();
+        sorting = false;
+        if (pendingSort) { pendingSort = false; debouncedSort(); }
+      }, 300);
+    };
+  })();
 
-  let navObs, navTimer;
+  const watchResults = () => {
+    const container = document.querySelector('.s-result-list.s-search-results, #mainResults .s-result-list');
+    if (!container || container === observedContainer) return;
+    pauseObs();
+    observedContainer = container;
+    resultObs = new MutationObserver(debouncedSort);
+    resultObs.observe(container, { childList: true });
+  };
+
+  if (isSearchPage()) { await sortAmazonResults(); watchResults(); }
+
+  // On SPA navigation (pushState/replaceState), re-sort once DOM settles
   const onNavigate = () => {
     if (!isSearchPage()) return;
-    clearTimeout(navTimer);
-    if (navObs) navObs.disconnect();
-    navObs = new MutationObserver(() => {
-      clearTimeout(navTimer);
-      navTimer = setTimeout(() => { navObs.disconnect(); sortAmazonResults(); }, 300);
+    // Immediately schedule a sort — the persistent observer on the container
+    // will also catch mutations, but if the container is replaced we need
+    // a body-level observer to detect the new one
+    debouncedSort();
+    const bodyObs = new MutationObserver(() => {
+      const container = document.querySelector('.s-result-list.s-search-results, #mainResults .s-result-list');
+      if (container && container !== observedContainer) {
+        bodyObs.disconnect();
+        watchResults();
+        debouncedSort();
+      }
     });
-    navObs.observe(document.body, { childList: true, subtree: true });
+    bodyObs.observe(document.body, { childList: true, subtree: true });
+    // Auto-disconnect after 10s to avoid leak if container never changes
+    setTimeout(() => bodyObs.disconnect(), 10000);
   };
 
   const origPush = history.pushState;
